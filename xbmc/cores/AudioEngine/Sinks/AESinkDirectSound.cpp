@@ -171,12 +171,12 @@ bool CAESinkDirectSound::Initialize(AEAudioFormat &format, std::string &device)
     if (hr == RPC_S_OK) RpcStringFree(&wszUuid);
   }
 
-  hr = DirectSoundCreate(deviceGUID, &m_pDSound, NULL);
+  hr = DirectSoundCreate8(deviceGUID, &m_pDSound, NULL);
 
   if (FAILED(hr))
   {
     CLog::Log(LOGERROR, __FUNCTION__": Failed to create the DirectSound device %s with error %s, trying the default device.", deviceFriendlyName.c_str(), dserr2str(hr));
-    hr = DirectSoundCreate(NULL, &m_pDSound, NULL);
+    hr = DirectSoundCreate8(NULL, &m_pDSound, NULL);
     if (FAILED(hr))
     {
       CLog::Log(LOGERROR, __FUNCTION__": Failed to create the default DirectSound device with error %s.", dserr2str(hr));
