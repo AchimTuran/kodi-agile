@@ -764,7 +764,7 @@ CActiveAEBufferPoolADSP::~CActiveAEBufferPoolADSP()
 {
   Flush();
 
-  CServiceBroker::GetADSP().DestroyDSPs(m_streamId);
+  CServiceBroker::GetActiveAE().GetAudioDSP().DestroyAudioDSPProcessor(m_streamId);
 }
 
 bool CActiveAEBufferPoolADSP::Create(unsigned int totaltime, bool stereoUpmix, bool bypassDSP)
@@ -785,10 +785,10 @@ bool CActiveAEBufferPoolADSP::Create(unsigned int totaltime, bool stereoUpmix, b
   * stream with the basic data to have best quality like for surround upmix.
   *
   * The value m_streamId and address pointer m_processor are passed a pointers
-  * to CServiceBroker::GetADSP().CreateDSPs and set from it.
+  * to CServiceBroker::GetActiveAE().CreateAudioDSPProcessor(...) and set from it.
   */
-  m_streamId = CServiceBroker::GetADSP().CreateDSPs(m_streamId, m_processor, m_inputFormat, CActiveAEBufferPool::m_format,
-                                                    m_stereoUpmix, m_bypassDSP, m_Quality, m_MatrixEncoding, m_AudioServiceType, m_Profile);
+  m_streamId = CServiceBroker::GetActiveAE().GetAudioDSP().CreateAudioDSPProcessor(m_streamId, m_processor, m_inputFormat, CActiveAEBufferPool::m_format,
+                                                                                   m_stereoUpmix, m_bypassDSP, m_Quality, m_MatrixEncoding, m_AudioServiceType, m_Profile);
   if (m_streamId < 0)
   {
     return false;
@@ -911,7 +911,7 @@ bool CActiveAEBufferPoolADSP::ProcessBuffers(int64_t timestamp/* = 0*/)
       }
 
       // calculate pts for last sample in m_procSample
-      int bufferedSamples = 0;/** @todo implement m_processor->GetGetBufferedSamples();*/
+      int bufferedSamples = 0;//! @todo implement m_processor->GetGetBufferedSamples();
       m_procSample->pkt_start_offset = m_procSample->pkt->nb_samples;
       m_procSample->timestamp = m_lastSamplePts - bufferedSamples * 1000 / m_format.m_sampleRate;
 
@@ -1188,7 +1188,7 @@ float CActiveAEBufferPoolADSP::GetDelay()
 
   if (m_processor)
   {
-    delay += m_processor->GetDelay();  /** @todo implemented asynchronous processing */
+    delay += m_processor->GetDelay();  //! @todo implemented asynchronous processing
   }
 
   //if (m_dspSample)
@@ -1226,14 +1226,14 @@ void CActiveAEBufferPoolADSP::ChangeAudioDSP()
   if (m_processor)
   {
     m_processor->Destroy();
-    CServiceBroker::GetADSP().DestroyDSPs(m_streamId);
+    CServiceBroker::GetActiveAE().GetAudioDSP().DestroyAudioDSPProcessor(m_streamId);
     m_streamId = -1;
   }
 
-  m_streamId = CServiceBroker::GetADSP().CreateDSPs(m_streamId, m_processor, m_inputFormat,
-                                                    CActiveAEBufferPool::m_format, m_stereoUpmix,
-                                                    m_bypassDSP, m_Quality, m_MatrixEncoding,
-                                                    m_AudioServiceType, m_Profile);
+  m_streamId = CServiceBroker::GetActiveAE().GetAudioDSP().CreateAudioDSPProcessor(m_streamId, m_processor, m_inputFormat,
+                                                                     CActiveAEBufferPool::m_format, m_stereoUpmix,
+                                                                     m_bypassDSP, m_Quality, m_MatrixEncoding,
+                                                                     m_AudioServiceType, m_Profile);
   if (m_streamId >= 0)
   {
     AEAudioFormat tmpOutFormat = m_processor->GetOutputFormat();
