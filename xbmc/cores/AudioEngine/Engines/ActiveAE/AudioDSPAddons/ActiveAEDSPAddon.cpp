@@ -21,7 +21,7 @@
 #include <vector>
 #include "Application.h"
 #include "ActiveAEDSPAddon.h"
-#include "ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/libKODI_guilib.h"
 #include "commons/Exception.h"
 #include "settings/AdvancedSettings.h"
@@ -49,44 +49,45 @@ CActiveAEDSPAddon::~CActiveAEDSPAddon(void)
 
 void CActiveAEDSPAddon::OnDisabled()
 {
-  CServiceBroker::GetADSP().UpdateAddons();
+  CServiceBroker::GetActiveAE().GetAudioDSP().UpdateAddons();
 }
 
 void CActiveAEDSPAddon::OnEnabled()
 {
-  CServiceBroker::GetADSP().UpdateAddons();
+  CServiceBroker::GetActiveAE().GetAudioDSP().UpdateAddons();
 }
 
 AddonPtr CActiveAEDSPAddon::GetRunningInstance() const
 {
-  if (CServiceBroker::GetADSP().IsActivated())
-  {
+  //! @todo remove this because AudioDSP activation will be dropped
+  //if (CServiceBroker::GetADSP().IsActivated())
+  //{
     AddonPtr adspAddon;
-    if (CServiceBroker::GetADSP().GetAudioDSPAddon(ID(), adspAddon))
+    if (CServiceBroker::GetActiveAE().GetAudioDSP().GetAudioDSPAddon(ID(), adspAddon))
       return adspAddon;
-  }
+  //}
   return CAddon::GetRunningInstance();
 }
 
 void CActiveAEDSPAddon::OnPreInstall()
 {
-  CServiceBroker::GetADSP().UpdateAddons();
+  CServiceBroker::GetActiveAE().GetAudioDSP().UpdateAddons();
 }
 
 void CActiveAEDSPAddon::OnPostInstall(bool restart, bool update)
 {
-  CServiceBroker::GetADSP().UpdateAddons();
+  CServiceBroker::GetActiveAE().GetAudioDSP().UpdateAddons();
 }
 
 void CActiveAEDSPAddon::OnPreUnInstall()
 {
   //! @todo implement unloading adsp addons
-  //CServiceBroker::GetADSP().Deactivate();
+  //CServiceBroker::GetActiveAE().GetAudioDSP().Deactivate();
 }
 
 void CActiveAEDSPAddon::OnPostUnInstall()
 {
-  CServiceBroker::GetADSP().UpdateAddons();
+  CServiceBroker::GetActiveAE().GetAudioDSP().UpdateAddons();
 }
 
 void CActiveAEDSPAddon::ResetProperties(int iClientId /* = AE_DSP_INVALID_ADDON_ID */)

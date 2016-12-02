@@ -31,6 +31,7 @@ extern "C" {
 #include "Application.h"
 #include "cores/AudioEngine/AEResampleFactory.h"
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/IPlayer.h"
 #include "settings/MediaSettings.h"
@@ -494,9 +495,6 @@ bool CActiveAEDSPProcess::CreateStreamProfile()
 void CActiveAEDSPProcess::Destroy()
 {
   CSingleLock lock(m_restartSection);
-
-  if (!CServiceBroker::GetADSP().IsActivated())
-    return;
 
   for (AE_DSP_ADDONMAP_ITR itr = m_usedMap.begin(); itr != m_usedMap.end(); ++itr)
   {
@@ -986,7 +984,7 @@ bool CActiveAEDSPProcess::Process(CSampleBuffer *in, CSampleBuffer *out)
 
     if (needDSPAddonsReinit)
     {
-      /*! @todo: test with an resampler add-on */
+      //! @todo: test with an resampler add-on
       SetFFMpegDSPProcessorArray(m_ffMpegProcessArray[FFMPEG_PROC_ARRAY_IN], lastOutArray, m_idx_in, m_addonSettings.lInChannelPresentFlags);
       SetFFMpegDSPProcessorArray(m_ffMpegProcessArray[FFMPEG_PROC_ARRAY_OUT], m_processArray[togglePtr], m_idx_out, m_addonSettings.lOutChannelPresentFlags);
     }
@@ -1273,7 +1271,7 @@ void CActiveAEDSPProcess::UpdateActiveModes()
   * Load all selected processing types, stored in a database and available from addons
   */
   AE_DSP_ADDONMAP addonMap;
-  if (CServiceBroker::GetADSP().GetEnabledAudioDSPAddons(addonMap) > 0)
+  if (CServiceBroker::GetActiveAE().GetAudioDSP().GetEnabledAudioDSPAddons(addonMap) > 0)
   {
     int foundInputResamplerId = -1; /*!< Used to prevent double call of StreamCreate if input stream resampling is together with outer processing types */
 
@@ -1282,7 +1280,7 @@ void CActiveAEDSPProcess::UpdateActiveModes()
                                     * load one allowed before master processing & final resample addon
                                     */
     CLog::Log(LOGDEBUG, "  ---- DSP input resample addon ---");
-    const AE_DSP_MODELIST listInputResample = CServiceBroker::GetADSP().GetAvailableModes(AE_DSP_MODE_TYPE_INPUT_RESAMPLE);
+    const AE_DSP_MODELIST listInputResample = CServiceBroker::GetActiveAE().GetAudioDSP().GetAvailableModes(AE_DSP_MODE_TYPE_INPUT_RESAMPLE);
     if (listInputResample.empty())
       CLog::Log(LOGDEBUG, "  | - no input resample addon present or enabled");
     for (unsigned int i = 0; i < listInputResample.size(); ++i)
@@ -1374,7 +1372,7 @@ void CActiveAEDSPProcess::UpdateActiveModes()
     * Load all required pre process dsp addon functions
     */
     CLog::Log(LOGDEBUG, "  ---- DSP active pre process modes ---");
-    const AE_DSP_MODELIST listPreProcess = CServiceBroker::GetADSP().GetAvailableModes(AE_DSP_MODE_TYPE_PRE_PROCESS);
+    const AE_DSP_MODELIST listPreProcess = CServiceBroker::GetActiveAE().GetAudioDSP().GetAvailableModes(AE_DSP_MODE_TYPE_PRE_PROCESS);
     for (unsigned int i = 0; i < listPreProcess.size(); ++i)
     {
       CActiveAEDSPModePtr pMode = listPreProcess[i].first;
@@ -1404,7 +1402,7 @@ void CActiveAEDSPProcess::UpdateActiveModes()
     * Load all available master modes from addons and put together with database
     */
     CLog::Log(LOGDEBUG, "  ---- DSP active master process modes ---");
-    const AE_DSP_MODELIST listMasterProcess = CServiceBroker::GetADSP().GetAvailableModes(AE_DSP_MODE_TYPE_MASTER_PROCESS);
+    const AE_DSP_MODELIST listMasterProcess = CServiceBroker::GetActiveAE().GetAudioDSP().GetAvailableModes(AE_DSP_MODE_TYPE_MASTER_PROCESS);
     for (unsigned int i = 0; i < listMasterProcess.size(); ++i)
     {
       CActiveAEDSPModePtr pMode = listMasterProcess[i].first;
@@ -1478,7 +1476,7 @@ void CActiveAEDSPProcess::UpdateActiveModes()
     * Load all required post process dsp addon functions
     */
     CLog::Log(LOGDEBUG, "  ---- DSP active post process modes ---");
-    const AE_DSP_MODELIST listPostProcess = CServiceBroker::GetADSP().GetAvailableModes(AE_DSP_MODE_TYPE_POST_PROCESS);
+    const AE_DSP_MODELIST listPostProcess = CServiceBroker::GetActiveAE().GetAudioDSP().GetAvailableModes(AE_DSP_MODE_TYPE_POST_PROCESS);
     for (unsigned int i = 0; i < listPostProcess.size(); ++i)
     {
       CActiveAEDSPModePtr pMode = listPostProcess[i].first;
@@ -1511,7 +1509,7 @@ void CActiveAEDSPProcess::UpdateActiveModes()
     CLog::Log(LOGDEBUG, "  ---- DSP post resample addon ---");
     if (m_addonSettings.iProcessSamplerate != m_outputFormat.m_sampleRate)
     {
-      const AE_DSP_MODELIST listOutputResample = CServiceBroker::GetADSP().GetAvailableModes(AE_DSP_MODE_TYPE_OUTPUT_RESAMPLE);
+      const AE_DSP_MODELIST listOutputResample = CServiceBroker::GetActiveAE().GetAudioDSP().GetAvailableModes(AE_DSP_MODE_TYPE_OUTPUT_RESAMPLE);
       if (listOutputResample.empty())
         CLog::Log(LOGDEBUG, "  | - no final post resample addon present or enabled, becomes performed by KODI");
       for (unsigned int i = 0; i < listOutputResample.size(); ++i)

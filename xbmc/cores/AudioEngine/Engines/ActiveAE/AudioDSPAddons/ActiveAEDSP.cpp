@@ -19,6 +19,7 @@
  */
 
 #include "ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 
 #include <utility>
 #include <functional>
@@ -50,6 +51,7 @@ extern "C" {
 #include "settings/Settings.h"
 #include "utils/JobManager.h"
 #include "utils/StringUtils.h"
+#include "Utils/ADSPUtil.h"
 
 
 using namespace ADDON;
@@ -112,19 +114,20 @@ public:
 
   bool DoWork(void)
   {
-    CServiceBroker::GetADSP().TriggerModeUpdate(false);
+    //CServiceBroker::GetADSP().TriggerModeUpdate(false);
     return true;
   }
 };
 
-void CActiveAEDSP::TriggerModeUpdate(bool bAsync /* = true */)
+void CActiveAEDSP::TriggerAudioDSPModeUpdate(bool bAsync /* = true */)
 {
-  if (bAsync)
-  {
-    CActiveAEDSPModeUpdateJob *job = new CActiveAEDSPModeUpdateJob();
-    CJobManager::GetInstance().AddJob(job, NULL);
-    return;
-  }
+  //! @todo reimplement async mode update
+  //if (bAsync)
+  //{
+  //  CActiveAEDSPModeUpdateJob *job = new CActiveAEDSPModeUpdateJob();
+  //  CJobManager::GetInstance().AddJob(job, NULL);
+  //  return;
+  //}
 
   CLog::Log(LOGINFO, "ActiveAE DSP - %s - Update mode selections", __FUNCTION__);
 
@@ -209,7 +212,7 @@ void CActiveAEDSP::ResetDatabase(void)
 {
   CLog::Log(LOGNOTICE, "ActiveAE DSP - clearing the audio DSP database");
 
-  if (IsProcessing())
+  if (IsAudioDSPProcessing())
   {
     CLog::Log(LOGNOTICE, "ActiveAE DSP - stopping playback");
     CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
@@ -311,7 +314,7 @@ int CActiveAEDSP::GetAudioDSPAddonId(const AddonPtr &addon) const
 
 /*! @name GUIInfoManager calls */
 //@{
-bool CActiveAEDSP::TranslateBoolInfo(DWORD dwInfo) const
+bool CActiveAEDSP::TranslateAudioDSPBoolInfo(DWORD dwInfo) const
 {
   bool bReturn = false;
 
@@ -325,7 +328,7 @@ bool CActiveAEDSP::TranslateBoolInfo(DWORD dwInfo) const
   if (dwInfo == ADSP_HAS_MODES)
     return HasAvailableModes();
 
-  if (!IsProcessing() || !m_usedProcesses[m_activeProcessId])
+  if (!IsAudioDSPProcessing() || !m_usedProcesses[m_activeProcessId])
     return false;
 
   switch (dwInfo)
@@ -358,7 +361,7 @@ bool CActiveAEDSP::TranslateBoolInfo(DWORD dwInfo) const
   return bReturn;
 }
 
-bool CActiveAEDSP::TranslateCharInfo(DWORD dwInfo, std::string &strValue) const
+bool CActiveAEDSP::TranslateAudioDSPCharInfo(DWORD dwInfo, std::string &strValue) const
 {
   bool bReturn = false;
 
@@ -369,7 +372,7 @@ bool CActiveAEDSP::TranslateCharInfo(DWORD dwInfo, std::string &strValue) const
     return false;
   }
 
-  if (!IsProcessing() || !m_usedProcesses[m_activeProcessId])
+  if (!IsAudioDSPProcessing() || !m_usedProcesses[m_activeProcessId])
     return false;
 
   CActiveAEDSPModePtr activeMaster = m_usedProcesses[m_activeProcessId]->GetActiveMasterMode();
@@ -380,11 +383,11 @@ bool CActiveAEDSP::TranslateCharInfo(DWORD dwInfo, std::string &strValue) const
   {
   case ADSP_ACTIVE_STREAM_TYPE:
     bReturn = true;
-    strValue = g_localizeStrings.Get(GetStreamTypeName(m_usedProcesses[m_activeProcessId]->GetUsedStreamType()));
+    strValue = g_localizeStrings.Get(CADSPUtil::GetStreamTypeName(m_usedProcesses[m_activeProcessId]->GetUsedStreamType()));
     break;
   case ADSP_DETECTED_STREAM_TYPE:
     bReturn = true;
-    strValue = g_localizeStrings.Get(GetStreamTypeName(m_usedProcesses[m_activeProcessId]->GetDetectedStreamType()));
+    strValue = g_localizeStrings.Get(CADSPUtil::GetStreamTypeName(m_usedProcesses[m_activeProcessId]->GetDetectedStreamType()));
     break;
   case ADSP_MASTER_NAME:
     {
@@ -393,7 +396,7 @@ bool CActiveAEDSP::TranslateCharInfo(DWORD dwInfo, std::string &strValue) const
       int modeId = activeMaster->ModeID();
       if (modeId == AE_DSP_MASTER_MODE_ID_PASSOVER || modeId >= AE_DSP_MASTER_MODE_ID_INTERNAL_TYPES)
         strValue = g_localizeStrings.Get(activeMaster->ModeName());
-      else if (CServiceBroker::GetADSP().GetAudioDSPAddon(activeMaster->AddonID(), addon))
+      else if (CServiceBroker::GetActiveAE().GetAudioDSP().GetAudioDSPAddon(activeMaster->AddonID(), addon))
         strValue = g_localizeStrings.GetAddonString(addon->ID(), activeMaster->ModeName());
     }
     break;
@@ -663,7 +666,7 @@ void CActiveAEDSP::UpdateAddons()
     }
   }
 
-  TriggerModeUpdate();
+  TriggerAudioDSPModeUpdate();
 }
 //@}
 
@@ -697,7 +700,7 @@ AE_DSP_STREAMTYPE CActiveAEDSP::LoadCurrentAudioSettings(void)
 /*! @name Backend methods */
 //@{
 
-bool CActiveAEDSP::IsProcessing(void) const
+bool CActiveAEDSP::IsAudioDSPProcessing(void) const
 {
   return m_isActive && m_usedProcessesCnt > 0;
 }
@@ -840,7 +843,7 @@ bool CActiveAEDSP::GetAudioDSPAddon(const std::string &strId, AddonPtr &addon) c
 
 /*! @name Menu hook methods */
 //@{
-bool CActiveAEDSP::HaveMenuHooks(AE_DSP_MENUHOOK_CAT cat, int iDSPAddonID)
+bool CActiveAEDSP::HasAudioDSPMenuHooks(AE_DSP_MENUHOOK_CAT cat, int iDSPAddonID)
 {
   CSingleLock lock(m_critSection);
   for (AE_DSP_ADDONMAP_CITR citr = m_addonMap.begin(); citr != m_addonMap.end(); ++citr)
@@ -866,7 +869,7 @@ bool CActiveAEDSP::HaveMenuHooks(AE_DSP_MENUHOOK_CAT cat, int iDSPAddonID)
   return false;
 }
 
-bool CActiveAEDSP::GetMenuHooks(int iDSPAddonID, AE_DSP_MENUHOOK_CAT cat, AE_DSP_MENUHOOKS &hooks)
+bool CActiveAEDSP::GetAudioDSPMenuHooks(int iDSPAddonID, AE_DSP_MENUHOOK_CAT cat, AE_DSP_MENUHOOKS &hooks)
 {
   bool bReturn(false);
 

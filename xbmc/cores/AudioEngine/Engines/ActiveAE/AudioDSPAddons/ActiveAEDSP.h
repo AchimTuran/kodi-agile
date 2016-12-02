@@ -46,6 +46,7 @@ namespace ActiveAE
 {
   class CActiveAEDSPProcess;
   class CActiveAEDSPAddon;
+  class CActiveAEDSPProxy;
 
   typedef std::shared_ptr<ActiveAE::CActiveAEDSPProcess>  CActiveAEDSPProcessPtr;
   typedef std::map< int, AE_DSP_ADDON >                   AE_DSP_ADDONMAP;
@@ -59,6 +60,8 @@ namespace ActiveAE
   class CActiveAEDSP : public ADDON::IAddonMgrCallback,
                        public ISettingCallback
   {
+    friend class CActiveAEDSPProxy;
+
   /*! @name Master audio dsp control class */
   //@{
   public:
