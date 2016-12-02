@@ -26,7 +26,6 @@ class CBinaryAddonCache;
 }
 
 namespace ActiveAE {
-class CActiveAEDSP;
 class CActiveAE;
 }
 
@@ -58,7 +57,6 @@ public:
   static ANNOUNCEMENT::CAnnouncementManager &GetAnnouncementManager();
   static XBPython &GetXBPython();
   static PVR::CPVRManager &GetPVRManager();
-  static ActiveAE::CActiveAEDSP& GetADSP();
   static ActiveAE::CActiveAE& GetActiveAE();
   static CContextMenuManager& GetContextMenuManager();
   static CDataCacheCore& GetDataCacheCore();
