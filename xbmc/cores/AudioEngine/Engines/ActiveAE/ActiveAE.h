@@ -35,6 +35,7 @@
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.h"
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPProxy.h"
 
 #include "guilib/DispResource.h"
 #include <queue>
@@ -229,7 +230,7 @@ protected:
   std::vector<StreamStats> m_streamStats;
 };
 
-class CActiveAE : public IDispResource, private CThread
+class CActiveAE : public IDispResource, private CThread, private CActiveAEDSPProxy
 {
 protected:
   friend class ::CServiceManager;
@@ -285,6 +286,8 @@ public:
   virtual void OnResetDisplay();
   virtual void OnAppFocusChange(bool focus);
 
+  inline CActiveAEDSPProxy& GetAudioDSP() { return *static_cast<CActiveAEDSPProxy*>(this); }
+
 protected:
   void PlaySound(CActiveAESound *sound);
   uint8_t **AllocSoundSample(SampleConfig &config, int &samples, int &bytes_per_sample, int &planes, int &linesize);
@@ -303,7 +306,7 @@ protected:
   void SetStreamResampleMode(CActiveAEStream *stream, int mode);
   void SetStreamFFmpegInfo(CActiveAEStream *stream, int profile, enum AVMatrixEncoding matrix_encoding, enum AVAudioServiceType audio_service_type);
   void SetStreamFade(CActiveAEStream *stream, float from, float target, unsigned int millis);
-
+  
 protected:
   void Process();
   void StateMachine(int signal, Protocol *port, Message *msg);

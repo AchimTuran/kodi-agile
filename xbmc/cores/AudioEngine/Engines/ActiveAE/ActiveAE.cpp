@@ -23,7 +23,6 @@
 using namespace ActiveAE;
 #include "ActiveAESound.h"
 #include "ActiveAEStream.h"
-#include "ServiceBroker.h"
 #include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPProcess.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
@@ -295,6 +294,7 @@ CActiveAE::~CActiveAE()
 
 void CActiveAE::Dispose()
 {
+  CActiveAEDSPProxy::Shutdown();
   g_Windowing.Unregister(this);
 
   m_bStop = true;
@@ -467,6 +467,7 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           m_extError = false;
           m_sink.EnumerateSinkList(false);
           LoadSettings();
+          CActiveAEDSPProxy::Init();
           Configure();
           msg->Reply(CActiveAEControlProtocol::ACC);
           if (!m_extError)
@@ -544,6 +545,7 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::SETNOISETYPE, &m_settings.streamNoise, sizeof(bool));
           m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::SETSILENCETIMEOUT, &m_settings.silenceTimeout, sizeof(int));
           ChangeResamplers();
+          ChangeADSP();
           if (!NeedReconfigureBuffers() && !NeedReconfigureSink())
             return;
           m_state = AE_TOP_RECONFIGURING;
@@ -799,6 +801,7 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
             m_sink.EnumerateSinkList(true);
             LoadSettings();
           }
+          CActiveAEDSPProxy::Init();
           Configure();
           if (!displayReset)
             msg->Reply(CActiveAEControlProtocol::ACC);
@@ -1280,6 +1283,7 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
         (*it)->m_processingBuffers->Flush();
         m_discardBufferPools.push_back((*it)->m_processingBuffers->GetResampleBuffers());
         m_discardBufferPools.push_back((*it)->m_processingBuffers->GetAtempoBuffers());
+        m_discardBufferPools.push_back((*it)->m_processingBuffers->GetADSPBuffers());
         delete (*it)->m_processingBuffers;
         (*it)->m_processingBuffers = nullptr;
       }
@@ -1289,11 +1293,10 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
 
         (*it)->m_processingBuffers = new CActiveAEStreamBuffers((*it)->m_inputBuffers->m_format, outputFormat, m_settings.resampleQuality);
         (*it)->m_processingBuffers->ForceResampler((*it)->m_forceResampler);
-        (*it)->m_processingBuffers->SetDSPConfig(useDSP, (*it)->m_bypassDSP);
 
+        (*it)->m_processingBuffers->Create(MAX_CACHE_LEVEL*1000, false, m_settings.stereoupmix, m_settings.normalizelevels, useDSP, (*it)->m_bypassDSP);
         if (useDSP && !(*it)->m_bypassDSP)
           (*it)->m_processingBuffers->SetExtraData((*it)->m_profile, (*it)->m_matrixEncoding, (*it)->m_audioServiceType);
-        (*it)->m_processingBuffers->Create(MAX_CACHE_LEVEL*1000, false, m_settings.stereoupmix, m_settings.normalizelevels, useDSP);
 
         m_stats.SetDSP(useDSP);
       }
@@ -1450,6 +1453,7 @@ void CActiveAE::DiscardStream(CActiveAEStream *stream)
         (*it)->m_processingBuffers->Flush();
         m_discardBufferPools.push_back((*it)->m_processingBuffers->GetResampleBuffers());
         m_discardBufferPools.push_back((*it)->m_processingBuffers->GetAtempoBuffers());
+        m_discardBufferPools.push_back((*it)->m_processingBuffers->GetADSPBuffers());
       }
       delete (*it)->m_processingBuffers;
       CLog::Log(LOGDEBUG, "CActiveAE::DiscardStream - audio stream deleted");
@@ -1574,7 +1578,16 @@ void CActiveAE::ChangeResamplers()
   std::list<CActiveAEStream*>::iterator it;
   for(it=m_streams.begin(); it!=m_streams.end(); ++it)
   {
-    (*it)->m_processingBuffers->ConfigureResampler(m_settings.normalizelevels, m_settings.dspaddonsenabled, m_settings.stereoupmix, m_settings.resampleQuality);
+    (*it)->m_processingBuffers->ConfigureResampler(m_settings.normalizelevels, m_settings.stereoupmix, m_settings.resampleQuality);
+  }
+}
+
+void ActiveAE::CActiveAE::ChangeADSP()
+{
+  std::list<CActiveAEStream*>::iterator it;
+  for (it = m_streams.begin(); it != m_streams.end(); ++it)
+  {
+    (*it)->m_processingBuffers->ConfigureADSP(m_settings.dspaddonsenabled, m_settings.stereoupmix, m_settings.resampleQuality);
   }
 }
 
@@ -1640,7 +1653,7 @@ void CActiveAE::ApplySettingsToFormat(AEAudioFormat &format, AudioSettings &sett
       CAEChannelInfo stdLayout(stdChannelLayout);
 
       if (m_settings.config == AE_CONFIG_FIXED || settings.dspaddonsenabled || (settings.stereoupmix && format.m_channelLayout.Count() <= 2))
-        format.m_channelLayout = CServiceBroker::GetADSP().GetInternalChannelLayout(stdChannelLayout);
+        format.m_channelLayout = CActiveAEDSPProxy::GetInternalChannelLayout(stdChannelLayout);
       else if (m_extKeepConfig && (settings.config == AE_CONFIG_AUTO) && (oldMode != MODE_RAW))
         format.m_channelLayout = m_internalFormat.m_channelLayout;
       else
@@ -2633,7 +2646,8 @@ void CActiveAE::OnSettingsChange(const std::string& setting)
       setting == CSettings::SETTING_AUDIOOUTPUT_SAMPLERATE             ||
       setting == CSettings::SETTING_AUDIOOUTPUT_MAINTAINORIGINALVOLUME ||
       setting == CSettings::SETTING_AUDIOOUTPUT_GUISOUNDMODE           ||
-      setting == CSettings::SETTING_AUDIOOUTPUT_STREAMNOISE)
+      setting == CSettings::SETTING_AUDIOOUTPUT_STREAMNOISE            ||
+      setting == CSettings::SETTING_AUDIOOUTPUT_DSPADDONSENABLED)
   {
     m_controlPort.SendOutMessage(CActiveAEControlProtocol::RECONFIGURE);
   }
