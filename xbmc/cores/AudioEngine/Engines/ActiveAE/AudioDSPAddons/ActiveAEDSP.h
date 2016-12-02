@@ -76,54 +76,186 @@ namespace ActiveAE
     virtual ~CActiveAEDSP();
   //@}
 
+  public: 
+    /*!
+     * @brief Perfoms a update of all processing calls over the add-ons
+     * @param bAsync if true the update becomes performed on background
+     */
+    void TriggerAudioDSPModeUpdate(bool bAsync = true);
+  //@}
+
+  /*! @name Menu hook methods */
+  //@{
+    /*!
+     * @brief Check whether a audio dsp addon has any audio DSP specific menu entries.
+     * @param cat The category to know
+     * @param iAddonId The ID of the addon to get the menu entries for. Get the menu for the active channel if iAddonId < 0.
+     * @return True if the dsp addon has any menu hooks, false otherwise.
+     * @note The main usage for this method is to have bigger modifiable addon setting dialogs which make the usage of
+     * standard addon settings dialog as option to it
+     * see kodi_adsp_types.h for available types
+     */
+    bool HasAudioDSPMenuHooks(AE_DSP_MENUHOOK_CAT cat, int iAddonId = -1);
+
+    /*!
+     * @brief Get the menu hooks for a dsp addon.
+     * @param iDSPAddonID The dsp addon to get the hooks for.
+     * @param cat The requested menu category
+     * @param hooks The container to add the hooks to.
+     * @return True if the hooks were added successfully (if any), false otherwise.
+     * @note The main usage for this method is to have bigger modifiable addon setting dialogs, the basic addon settings dialog
+     * can't be opened with it (is only in the menu list from ProcessMenuHooks)
+     * see kodi_adsp_types.h for available types
+     */
+    bool GetAudioDSPMenuHooks(int iDSPAddonID, AE_DSP_MENUHOOK_CAT cat, AE_DSP_MENUHOOKS &hooks);
+  //@}
+
+  /*! @name Backend methods */
+  //@{
+    /*!
+     * @return True when processing is active
+     */
+    bool IsAudioDSPProcessing(void) const;
+  //@}
+
+  /*! @name GUIInfoManager calls */
+  //@{
+    /*!
+     * @brief Get a GUIInfoManager boolean.
+     * @param dwInfo The boolean to get.
+     * @return The requested boolean or false if it wasn't found.
+     */
+    bool TranslateAudioDSPBoolInfo(DWORD dwInfo) const;
+
+    /*!
+     * @brief Get a GUIInfoManager character string.
+     * @param dwInfo The string to get.
+     * @return The requested string or an empty one if it wasn't found.
+     */
+    bool TranslateAudioDSPCharInfo(DWORD dwInfo, std::string &strValue) const;
+  //@}
+
+  /*! @name addon installation callback methods */
+  //@{
+    /*!
+     * @brief Get the friendly name for the audio dsp addon with the given id.
+     * @param iAddonId The id of the addon.
+     * @param strName The friendly name of the audio dsp addon or an empty string when it wasn't found.
+     * @return True if it was found, false otherwise.
+     */
+    bool GetAudioDSPAddonName(int iAddonId, std::string &strName) const;
+
+    /*!
+     * @brief Get the instance of the audio dsp addon.
+     * @param strId The string id of the addon to get.
+     * @param addon The audio dsp addon.
+     * @return True if the addon was found, false otherwise.
+     */
+    bool GetAudioDSPAddon(const std::string &strId, ADDON::AddonPtr &addon) const;
+
+    /*!
+     * @brief Get the instance of the audio dsp addon.
+     * @param iAddonId The id of the addon to get.
+     * @param addon The audio dsp addon.
+     * @return True if the addon was found, false otherwise.
+     */
+    bool GetAudioDSPAddon(int iAddonId, AE_DSP_ADDON &addon) const;
+
+    /*!
+     * @brief Get all enabled audio dsp addons.
+     * @param addons Store the enabled addons in this map.
+     * @return The amount of enabled audio addons.
+     */
+    int GetEnabledAudioDSPAddons(AE_DSP_ADDONMAP &addons) const;
+  //@}
+
+  /*! @name Current processing streams control function methods */
+  //@{
+    /*!>
+     * Get the dsp processing class of given stream id
+     * @param streamId The id of this stream
+     */
+    CActiveAEDSPProcessPtr GetDSPProcess(int streamId);
+
+    /*!>
+     * Get the currently active processing stream id
+     * @return Stream id, or max unsigned int value (-1) if not active
+     */
+    int GetActiveStreamId(void);
+  //@}
+
+protected:
+  /*! @name Current processing streams control function methods */
+  //@{
+    /*!>
+     * Create the dsp processing with check of all addons about the used input and output audio format.
+     * @param streamId The id of this stream
+     * @param inputFormat The used audio stream input format
+     * @param outputFormat Audio output format which is needed to send to the sinks
+     * @param quality The requested quality from settings
+     * @param upmix if true, the internal gets enabled
+     * @param bypassDSP it true, all active AudioDSP are skipped
+     * @param wasActive if it is true a recreation of present stream control becomes performed (process class becomes not deleted)
+     * @return True if the dsp processing becomes available
+     */
+    int CreateDSPs(int streamId, CActiveAEDSPProcessPtr &process, const AEAudioFormat &inputFormat, const AEAudioFormat &outputFormat,
+                   bool upmix, bool bypassDSP, AEQuality quality, enum AVMatrixEncoding matrix_encoding, enum AVAudioServiceType audio_service_type,
+                   int profile);
+
+    /*!>
+     * Destroy all allocated dsp add-ons streamId and stop processing.
+     * @param streamId Stream id that should be destroyed.
+     */
+    void DestroyDSPs(int streamId);
+
+    /*!>
+     * Get the channel position defination for given channel layout
+     * @param stdLayout The layout identifier
+     * @return the from given identifier set channel information class
+     */
+    CAEChannelInfo GetInternalChannelLayout(AEStdChLayout stdLayout);
+  //@}
+
+  /*! @name addon installation callback methods */
+  //@{
+    /*!
+     * @brief Update add-ons from the AddonManager
+     */
+    void UpdateAddons(void);
+  //@}
+
   /*! @name initialization and configuration methods */
   //@{
     void Init(void);
+
     /*!
      * @brief Stops dsp processing and the backend info update thread.
      */
     void Shutdown(void);
 
     /*!
-     * @brief Delete all objects and processing classes.
-     */
-    void Cleanup(void);
-
-    /*!
-     * @brief Reset the audio dsp database to it's initial state and delete all the data inside.
-     */
-    void ResetDatabase(void);
-
-    /*!
-     * @brief Check whether an add-on can be upgraded or installed without restarting the audio dsp, when the add-on is in use
-     * @param strAddonId The add-on to check.
-     * @return True when the add-on can be installed, false otherwise.
-     */
-    bool InstallAddonAllowed(const std::string& strAddonId) const;
-
-    /*!
      * @brief Get the audio dsp database pointer.
      * @return The audio dsp database.
      */
     CActiveAEDSPDatabase *GetADSPDatabase(void) { return &m_databaseDSP; }
+
+    /*!>
+     * Used to get all available modes on currently enabled add-ons
+     * It is used from CActiveAEDSPProcess to get a sorted modes list for a processing
+     * over the add-ons, several call to the same addon is possible with different mode id's.
+     * @param modeType The type to get
+     * @return modes Pointer to a buffer array where all available modes of type written in
+     */
+    const AE_DSP_MODELIST &GetAvailableModes(AE_DSP_MODE_TYPE modeType);
   //@}
 
-  /*! @name Settings and action callback methods */
-  //@{
-    virtual void OnSettingAction(const CSetting *setting) override;
-  //@}
-
+ private:
   /*! @name Backend methods */
   //@{
     /*!
      * @return True when processing is possible
      */
     bool IsActivated(void) const;
-
-    /*!
-     * @return True when processing is active
-     */
-    bool IsProcessing(void) const;
   //@}
 
   /*! @name addon installation callback methods */
@@ -169,13 +301,6 @@ namespace ActiveAE
     bool HasEnabledAudioDSPAddons(void) const;
 
     /*!
-     * @brief Get all enabled audio dsp addons.
-     * @param addons Store the enabled addons in this map.
-     * @return The amount of enabled audio addons.
-     */
-    int GetEnabledAudioDSPAddons(AE_DSP_ADDONMAP &addons) const;
-
-    /*!
      * @return The amount of ready audio dsp addons on current stream.
      */
     int ReadyAudioDSPAddonAmount(void) const;
@@ -200,102 +325,39 @@ namespace ActiveAE
      */
     bool IsReadyAudioDSPAddon(const ADDON::AddonPtr& addon);
 
-    /*!
-     * @brief Get the instance of the audio dsp addon.
-     * @param strId The string id of the addon to get.
-     * @param addon The audio dsp addon.
-     * @return True if the addon was found, false otherwise.
-     */
-    bool GetAudioDSPAddon(const std::string &strId, ADDON::AddonPtr &addon) const;
-
-    /*!
-     * @brief Get the instance of the audio dsp addon.
-     * @param iAddonId The id of the addon to get.
-     * @param addon The audio dsp addon.
-     * @return True if the addon was found, false otherwise.
-     */
-    bool GetAudioDSPAddon(int iAddonId, AE_DSP_ADDON &addon) const;
-
-    /*!
-     * @brief Get the friendly name for the audio dsp addon with the given id.
-     * @param iAddonId The id of the addon.
-     * @param strName The friendly name of the audio dsp addon or an empty string when it wasn't found.
-     * @return True if it was found, false otherwise.
-     */
-    bool GetAudioDSPAddonName(int iAddonId, std::string &strName) const;
-
-    /*!
-     * @brief Update add-ons from the AddonManager
-     */
-    void UpdateAddons(void);
-
     int GetAddonId(const std::string& strId) const;
   //@}
 
-  /*! @name GUIInfoManager calls */
+  /*! @name initialization and configuration methods */
   //@{
     /*!
-     * @brief Get a GUIInfoManager boolean.
-     * @param dwInfo The boolean to get.
-     * @return The requested boolean or false if it wasn't found.
+     * @brief Delete all objects and processing classes.
      */
-    bool TranslateBoolInfo(DWORD dwInfo) const;
+    void Cleanup(void);
 
     /*!
-     * @brief Get a GUIInfoManager character string.
-     * @param dwInfo The string to get.
-     * @return The requested string or an empty one if it wasn't found.
+     * @brief Reset the audio dsp database to it's initial state and delete all the data inside.
      */
-    bool TranslateCharInfo(DWORD dwInfo, std::string &strValue) const;
+    void ResetDatabase(void);
+
+    /*! @name Settings and action callback methods */
+    virtual void OnSettingAction(const CSetting *setting) override;
+
+    /*!
+     * @brief Check whether an add-on can be upgraded or installed without restarting the audio dsp, when the add-on is in use
+     * @param strAddonId The add-on to check.
+     * @return True when the add-on can be installed, false otherwise.
+     */
+    bool InstallAddonAllowed(const std::string& strAddonId) const;
   //@}
 
   /*! @name Current processing streams control function methods */
   //@{
     /*!>
-     * Get the channel position defination for given channel layout
-     * @param stdLayout The layout identifier
-     * @return the from given identifier set channel information class
-     */
-    CAEChannelInfo GetInternalChannelLayout(AEStdChLayout stdLayout);
-
-    /*!>
-     * Create the dsp processing with check of all addons about the used input and output audio format.
-     * @param streamId The id of this stream
-     * @param inputFormat The used audio stream input format
-     * @param outputFormat Audio output format which is needed to send to the sinks
-     * @param quality The requested quality from settings
-     * @param upmix if true, the internal gets enabled
-     * @param bypassDSP it true, all active AudioDSP are skipped
-     * @param wasActive if it is true a recreation of present stream control becomes performed (process class becomes not deleted)
-     * @return True if the dsp processing becomes available
-     */
-    int CreateDSPs(int streamId, CActiveAEDSPProcessPtr &process, const AEAudioFormat &inputFormat, const AEAudioFormat &outputFormat,
-                   bool upmix, bool bypassDSP, AEQuality quality, enum AVMatrixEncoding matrix_encoding, enum AVAudioServiceType audio_service_type,
-                   int profile);
-
-    /*!>
-     * Destroy all allocated dsp add-ons streamId and stop processing.
-     * @param streamId Stream id that should be destroyed.
-     */
-    void DestroyDSPs(int streamId);
-
-    /*!>
-     * Get the dsp processing class of given stream id
-     * @param streamId The id of this stream
-     */
-    CActiveAEDSPProcessPtr GetDSPProcess(int streamId);
-
-    /*!>
      * Get the amount of used dsp process stream handlers
      * @return Returns amount of processes
      */
     unsigned int GetProcessingStreamsAmount(void);
-
-    /*!>
-     * Get the currently active processing stream id
-     * @return Stream id, or max unsigned int value (-1) if not active
-     */
-    int GetActiveStreamId(void);
 
     /*!
      * @brief Check for available modes present from add-ons
@@ -304,56 +366,14 @@ namespace ActiveAE
      */
     bool HasAvailableModes(void) const;
 
-    /*!>
-     * Used to get all available modes on currently enabled add-ons
-     * It is used from CActiveAEDSPProcess to get a sorted modes list for a processing
-     * over the add-ons, several call to the same addon is possible with different mode id's.
-     * @param modeType The type to get
-     * @return modes Pointer to a buffer array where all available modes of type written in
-     */
-    const AE_DSP_MODELIST &GetAvailableModes(AE_DSP_MODE_TYPE modeType);
-
     /*!
      * @brief Load the settings for the current audio from the database.
      * @return If it was present inside settings it return the type of this settings
      */
     AE_DSP_STREAMTYPE LoadCurrentAudioSettings(void);
-
-    /*!
-     * @brief Perfoms a update of all processing calls over the add-ons
-     * @param bAsync if true the update becomes performed on background
-     */
-    void TriggerModeUpdate(bool bAsync = true);
-  //@}
-
-  /*! @name Menu hook methods */
-  //@{
-    /*!
-     * @brief Check whether a audio dsp addon has any audio DSP specific menu entries.
-     * @param cat The category to know
-     * @param iAddonId The ID of the addon to get the menu entries for. Get the menu for the active channel if iAddonId < 0.
-     * @return True if the dsp addon has any menu hooks, false otherwise.
-     * @note The main usage for this method is to have bigger modifiable addon setting dialogs which make the usage of
-     * standard addon settings dialog as option to it
-     * see kodi_adsp_types.h for available types
-     */
-    bool HaveMenuHooks(AE_DSP_MENUHOOK_CAT cat, int iAddonId = -1);
-
-    /*!
-     * @brief Get the menu hooks for a dsp addon.
-     * @param iDSPAddonID The dsp addon to get the hooks for.
-     * @param cat The requested menu category
-     * @param hooks The container to add the hooks to.
-     * @return True if the hooks were added successfully (if any), false otherwise.
-     * @note The main usage for this method is to have bigger modifiable addon setting dialogs, the basic addon settings dialog
-     * can't be opened with it (is only in the menu list from ProcessMenuHooks)
-     * see kodi_adsp_types.h for available types
-     */
-    bool GetMenuHooks(int iDSPAddonID, AE_DSP_MENUHOOK_CAT cat, AE_DSP_MENUHOOKS &hooks);
   //@}
 
 
-  protected:
     /*!
      * @brief Check whether a dsp addon is registered.
      * @param addon The dsp addon to check.
