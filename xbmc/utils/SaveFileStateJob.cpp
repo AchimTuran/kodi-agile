@@ -34,7 +34,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "music/MusicDatabase.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "xbmc/music/tags/MusicInfoTag.h"
 
 bool CSaveFileStateJob::DoWork()
@@ -203,7 +203,7 @@ bool CSaveFileStateJob::DoWork()
       }
     }
 
-    if (CServiceBroker::GetADSP().IsProcessing())
+    if (CServiceBroker::GetActiveAE().GetAudioDSP().IsAudioDSPProcessing())
     {
       std::string redactPath = CURL::GetRedacted(progressTrackingFile);
       CLog::Log(LOGDEBUG, "%s - Saving file state for dsp audio item %s", __FUNCTION__, redactPath.c_str());

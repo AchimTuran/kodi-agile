@@ -28,7 +28,7 @@
 #include "ServiceBroker.h"
 #include "filesystem/Directory.h"
 #include "GUIDialogAddonSettings.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "dialogs/GUIDialogContextMenu.h"
 #include "dialogs/GUIDialogTextViewer.h"
 #include "dialogs/GUIDialogOK.h"
@@ -91,7 +91,7 @@ bool CGUIDialogAddonInfo::OnMessage(CGUIMessage& message)
       {
         if (m_localAddon)
         {
-          if (m_localAddon->Type() == ADDON_ADSPDLL && CServiceBroker::GetADSP().IsProcessing())
+          if (m_localAddon->Type() == ADDON_ADSPDLL && CServiceBroker::GetActiveAE().GetAudioDSP().IsAudioDSPProcessing())
           {
             CGUIDialogOK::ShowAndGetInput(24137, 0, 24138, 0);
             return true;

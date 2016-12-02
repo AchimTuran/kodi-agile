@@ -20,7 +20,7 @@
 
 #include "ContextMenuItem.h"
 #include "ServiceBroker.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "epg/EpgInfoTag.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannel.h"
@@ -596,7 +596,7 @@ namespace PVR
     bool ShowAudioDSPSettings::IsVisible(const CFileItem &item) const
     {
       if (item.GetPVRChannelInfoTag() || item.GetPVRRecordingInfoTag())
-        return CServiceBroker::GetADSP().IsProcessing();
+        return CServiceBroker::GetActiveAE().GetAudioDSP().IsAudioDSPProcessing();
 
       return false;
     }

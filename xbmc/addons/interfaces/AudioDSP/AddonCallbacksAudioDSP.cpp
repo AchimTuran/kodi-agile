@@ -23,6 +23,7 @@
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPMode.h"
+#include "cores/AudioEngine/Utils/ADSPUtil.h"
 #include "cores/AudioEngine/Interfaces/AESound.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "settings/AdvancedSettings.h"
@@ -234,7 +235,7 @@ void CAddonCallbacksADSP::ADSPSoundPlay_SetChannel(void *addonData, ADSPHANDLE h
     return;
   }
 
-  ((IAESound*)handle)->SetChannel(CActiveAEDSP::GetKODIChannel(channel));
+  ((IAESound*)handle)->SetChannel(CADSPUtil::GetKODIChannel(channel));
 }
 
 AE_DSP_CHANNEL CAddonCallbacksADSP::ADSPSoundPlay_GetChannel(void *addonData, ADSPHANDLE handle)
@@ -246,7 +247,7 @@ AE_DSP_CHANNEL CAddonCallbacksADSP::ADSPSoundPlay_GetChannel(void *addonData, AD
     return AE_DSP_CH_INVALID;
   }
 
-  return CActiveAEDSP::GetDSPChannel(((IAESound*)handle)->GetChannel());
+  return CADSPUtil::GetDSPChannel(((IAESound*)handle)->GetChannel());
 }
 
 void CAddonCallbacksADSP::ADSPSoundPlay_SetVolume(void *addonData, ADSPHANDLE handle, float volume)
