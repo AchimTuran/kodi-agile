@@ -349,23 +349,6 @@ namespace ActiveAE
     bool GetMenuHooks(int iDSPAddonID, AE_DSP_MENUHOOK_CAT cat, AE_DSP_MENUHOOKS &hooks);
   //@}
 
-  /*! @name General helper functions */
-  //@{
-    /*!
-     * @brief Translate audio dsp channel flag to KODI channel flag
-     */
-    static enum AEChannel GetKODIChannel(AE_DSP_CHANNEL channel);
-
-    /*!
-     * @brief Translate KODI channel flag to audio dsp channel flag
-     */
-    static AE_DSP_CHANNEL GetDSPChannel(enum AEChannel channel);
-
-    /*!
-     * @brief Get name label id to given stream type id
-     */
-    static int GetStreamTypeName(unsigned int streamType);
-  //@}
 
   protected:
     /*!
