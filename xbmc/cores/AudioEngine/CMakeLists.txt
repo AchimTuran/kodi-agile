@@ -20,6 +20,7 @@ set(SOURCES AEResampleFactory.cpp
             Utils/AEPackIEC61937.cpp
             Utils/AEStreamInfo.cpp
             Utils/AEUtil.cpp
+            Utils/ADSPUtil.cpp
             Sinks/AESinkNULL.cpp)
 
 set(HEADERS AEResampleFactory.h
@@ -29,6 +30,7 @@ set(HEADERS AEResampleFactory.h
             Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPDatabase.h
             Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPMode.h
             Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPProcess.h
+            Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPProxy.h
             Encoders/AEEncoderFFmpeg.h
             Engines/ActiveAE/ActiveAE.h
             Engines/ActiveAE/ActiveAEBuffer.h
@@ -55,7 +57,8 @@ set(HEADERS AEResampleFactory.h
             Utils/AERingBuffer.h
             Utils/AEStreamData.h
             Utils/AEStreamInfo.h
-            Utils/AEUtil.h)
+            Utils/AEUtil.h
+            Utils/ADSPUtil.h)
 
 if(ALSA_FOUND)
   list(APPEND SOURCES Sinks/AESinkALSA.cpp
