@@ -3,7 +3,7 @@
 [[ -f buildhelpers.sh ]] &&
     source buildhelpers.sh
 
-FFMPEG_CONFIG_FILE=/xbmc/tools/buildsteps/win32/fmpeg_options.txt
+FFMPEG_CONFIG_FILE=/xbmc/tools/buildsteps/windows/ffmpeg_options.txt
 FFMPEG_VERSION_FILE=/xbmc/tools/depends/target/ffmpeg/FFMPEG-VERSION
 FFMPEG_BASE_OPTS="--disable-debug --disable-doc --enable-gpl --enable-gnutls --enable-w32threads"
 FFMPEG_DEFAULT_OPTS=""
@@ -12,7 +12,7 @@ FFMPEG_TARGET_OS=mingw32
 do_loaddeps $FFMPEG_VERSION_FILE
 FFMPEGDESTDIR=/xbmc/lib/win32/$LIBNAME
 
-if [ "$(pathChanged $FFMPEGDESTDIR $FFMPEG_VERSION_FILE /xbmc/project/BuildDependencies/DownloadMingwBuildEnv.bat /xbmc/tools/buildsteps/win32)" == "0" ]
+if [ "$(pathChanged $FFMPEGDESTDIR $FFMPEG_VERSION_FILE /xbmc/project/BuildDependencies/DownloadMingwBuildEnv.bat /xbmc/tools/buildsteps/windows)" == "0" ]
 then
   cp $FFMPEGDESTDIR/bin/*.dll /xbmc/system/
   if [ -f $BGPROCESSFILE ]; then
@@ -110,7 +110,7 @@ if [[ "$tools" = "msvc" ]]; then
 
   export PATH="$VCTOOLSPATH":$PATH
   export CFLAGS=""
-  export CXXFLAGS="" 
+  export CXXFLAGS=""
   export LDFLAGS=""
 
   extra_cflags="-MDd -I$LOCALDESTDIR/include"
@@ -142,7 +142,7 @@ if do_pkgConfig "gnutls = $GNUTLS_VER"; then
   sed -i 's/-lgnutls *$/-lgnutls -lnettle -lhogweed -lcrypt32 -lws2_32 -lz -lgmp -lintl -liconv/' \
   lib/gnutls.pc
   do_print_status "gnutls-${GNUTLS_VER}" "$blue_color" "Compiling"
-  do_makeinstall 
+  do_makeinstall
   do_pkgConfig "gnutls = $GNUTLS_VER";
 fi
 fi
@@ -160,7 +160,7 @@ do_print_status "$LIBNAME-$VERSION (${BITS})" "$blue_color" "Configuring"
 
 do_makelib &&
 cp $FFMPEGDESTDIR/bin/*.dll /xbmc/system/ &&
-tagSuccessFulBuild $FFMPEGDESTDIR $FFMPEG_VERSION_FILE /xbmc/project/BuildDependencies/DownloadMingwBuildEnv.bat /xbmc/tools/buildsteps/win32
+tagSuccessFulBuild $FFMPEGDESTDIR $FFMPEG_VERSION_FILE /xbmc/project/BuildDependencies/DownloadMingwBuildEnv.bat /xbmc/tools/buildsteps/windows
 
 #remove the bgprocessfile for signaling the process end
 if [ -f $BGPROCESSFILE ]; then
